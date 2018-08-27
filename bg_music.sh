@@ -37,7 +37,7 @@ function log ()
 			3) level="DEBUG"  ;;
 		esac
 		
-		printf "$(date +%FT%T%:z):\t${level}\t${0##*/}\t${FUNCNAME[1]}\t${message}\n" >> ${log} 
+		printf "$(date +%FT%T%:z):\t${level}\t$$\t${0##*/}\t${FUNCNAME[1]}\t${message}\n" >> ${log} 
 	fi
 }
 
@@ -73,7 +73,7 @@ function startBGM ()
 		play "${musicFiles[0]}"
 	fi
 	
-	nohup ./bg_music.sh "waitForEndOfTrack" 2>&1 &
+	nohup ./bg_music.sh "waitForEndOfTrack" > /dev/null 2>&1 &
 	log 3 "WaitLoop PID $!"
 }
 
@@ -88,6 +88,7 @@ function startMPG123 ()
 	else
 		log 2 "Found a running instance with PID $(pgrep mpg123)"
 	fi
+	silence
 }
 
 function command ()
@@ -118,6 +119,12 @@ function pause ()
 	command "pause"
 }
 
+function stop ()
+# stop playback
+{
+	command "stop"
+}
+
 function quit ()
 # quit
 {
@@ -132,6 +139,12 @@ function help ()
 {
 	log 3 "()"
 	command "help"
+}
+
+function silence ()
+# suppresses frame messages
+{
+	command "silence"
 }
 
 function fadeOut ()
@@ -180,13 +193,11 @@ function waitForEndOfTrack()
 	do
 		sleep 1
 		
-		printf "$(date +%FT%T%:z):\t${level}\t${0##*/}\t${FUNCNAME[1]}\tNoch aktiv\n" >> /dev/shm/wait.log
-		
 		# wait for string "@P 0" in $out
 		if [[ $(grep -c "@P 0" ${out}) -gt 0 ]]
 		then
 			log 3 "End of Track detected"
-			rm "${out}"
+			truncate --size 0 "${out}"
 			break
 		fi
 		
@@ -238,7 +249,11 @@ if [ "$1" == "waitForEndOfTrack" ]; then waitForEndOfTrack; fi
 if [ "$1" == "UnpauseAndFadeIn" ]; then pause; fadeIn; fi
 if [ "$1" == "fadeOutAndPause" ]; then fadeOut; pause; fi
 
-if [ "$1" == "quit" ]; then	quit; fi
+if [ "$1" == "pause" ]; then pause; fi
+if [ "$1" == "quit" ]; then quit; fi
+
+if [ "$1" == "help" ]; then help; fi
+if [ "$1" == "silence" ]; then silence; fi
 
 
 
