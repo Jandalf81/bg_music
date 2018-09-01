@@ -66,14 +66,14 @@ function startBGM ()
 	startMPG123
 	setVolume "${startVolume}"
 	getMusicFiles
-	if [ "${firstFile}" != "n/a" ]
+	if [[ -n ${firstFile} ]]
 	then
 		play "${firstFile}"
 	else
 		play "${musicFiles[0]}"
 	fi
 	
-	nohup ./bg_music.sh "waitForEndOfTrack" > /dev/null 2>&1 &
+	nohup ~/scripts/bg_music/bg_music.sh "waitForEndOfTrack" > /dev/null 2>&1 &
 	log 3 "WaitLoop PID $!"
 }
 
@@ -131,7 +131,7 @@ function quit ()
 	log 3 "()"
 	command "quit"
 	
-	rm "${in}"
+	#rm "${in}"
 	rm "${out}"
 }
 
@@ -212,7 +212,7 @@ function waitForEndOfTrack()
 	getMusicFiles
 	play "${musicFiles[0]}"
 	
-	nohup ./bg_music.sh "waitForEndOfTrack" 2>&1 &
+	nohup ~/scripts/bg_music/bg_music.sh "waitForEndOfTrack" > /dev/null 2>&1 &
 	log 3 "WaitLoop PID $!"
 }
 
@@ -242,18 +242,39 @@ function test ()
 ########
 
 # no parameter given, start BGM
-if [ "$1" == "" ]; then startBGM; fi
-
-if [ "$1" == "waitForEndOfTrack" ]; then waitForEndOfTrack; fi
-
-if [ "$1" == "UnpauseAndFadeIn" ]; then pause; fadeIn; fi
-if [ "$1" == "fadeOutAndPause" ]; then fadeOut; pause; fi
-
-if [ "$1" == "pause" ]; then pause; fi
-if [ "$1" == "quit" ]; then quit; fi
-
-if [ "$1" == "help" ]; then help; fi
-if [ "$1" == "silence" ]; then silence; fi
-
-
-
+if [[ -z "$1" ]]
+then 
+	startBGM
+else
+	case "$1" in
+		"waitForEndOfTrack")
+			waitForEndOfTrack
+			;;
+		"pause")
+			case "${contMode}" in
+				"resume")
+					fadeOut
+					pause
+					;;
+				"restart")
+					fadeOut
+					quit
+					;;
+			esac
+			;;
+		"resume")
+			case "${contMode}" in
+				"resume")
+					pause
+					fadeIn
+					;;
+				"restart")
+					startBGM
+					;;
+			esac
+			;;
+		"quit")
+			quit
+			;;
+	esac
+fi
